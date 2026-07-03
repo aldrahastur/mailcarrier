@@ -17,6 +17,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Illuminate\Contracts\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\HtmlString;
 use MailCarrier\Actions\Templates\GenerateSlug;
@@ -65,10 +66,33 @@ class TemplateResource extends Resource
                     }),
 
                 Tables\Columns\TextColumn::make('tags')
-                    ->badge()
-                    // Show only a few tags as an excerpt to keep the column narrow
-                    ->limitList(3)
-                    ->expandableLimitedList()
+                    // Use a scalar state (the tags count) so the column renders once per row.
+                    // A raw array state would make Filament render the badges once per tag.
+                    ->state(fn (Template $record): int => count($record->tags ?: []))
+                    ->formatStateUsing(function (Template $record): HtmlString {
+                        $tags = $record->tags ?: [];
+
+                        if (empty($tags)) {
+                            return new HtmlString('');
+                        }
+
+                        // Show only a few tags as an excerpt to keep the column narrow
+                        $limit = 3;
+                        $badges = collect($tags)
+                            ->take($limit)
+                            ->map(fn (string $tag): string => '<x-filament::badge>' . e($tag) . '</x-filament::badge>')
+                            ->implode('');
+                        $hasMoreTags = count($tags) > $limit
+                            ? '<span class="text-xs opacity-70 ms-1">...and ' . (count($tags) - $limit) . ' more</span>'
+                            : '';
+
+                        return new HtmlString(Blade::render(<<<HTML
+                            <div class="flex items-center gap-1">
+                            $badges
+                            $hasMoreTags
+                            </div>
+                        HTML));
+                    })
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('created_at')

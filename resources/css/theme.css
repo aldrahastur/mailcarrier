@@ -16,14 +16,19 @@
   @apply rounded bg-white;
 }
 
-.fi-fo-code-editor .cm-editor {
-  height: 30rem;
+/* Give the code editor a 30rem minimum height, keeping the line-number gutter
+   aligned with the content (set the min-height on the content and gutter, not the
+   wrapper, otherwise the gutter stops tracking the content).
+   Ref: https://codemirror.net/examples/styling/ */
+.fi-fo-code-editor .cm-editor .cm-content,
+.fi-fo-code-editor .cm-editor .cm-gutter {
+  min-height: 30rem !important;
 }
 
-/* Keep the line-number gutter as tall as the editor so it grows with it */
-.fi-fo-code-editor .cm-editor .cm-scroller,
-.fi-fo-code-editor .cm-editor .cm-gutters {
-  min-height: 30rem !important;
+/* Cap the height at 30rem and scroll from there instead of growing infinitely */
+.fi-fo-code-editor .cm-editor .cm-scroller {
+  max-height: 30rem !important;
+  overflow: auto !important;
 }
 
 .fi-fo-field-wrp-helper-text {
