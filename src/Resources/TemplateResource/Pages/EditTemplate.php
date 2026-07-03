@@ -62,6 +62,9 @@ class EditTemplate extends EditRecord
         return [
             TemplateResource::getFormEditor()
                 ->live()
+                // The builder editor form has no bound record, so re-evaluate the lock
+                // state from the editor data to keep the content read-only when locked.
+                ->disabled(fn (Get $get): bool => (bool) $get('_isLocked'))
                 ->afterStateUpdated(function (Get $get, string $state) {
                     Preview::cacheChanges(
                         $get('_internalId'),
@@ -89,14 +92,19 @@ class EditTemplate extends EditRecord
 
     public function mutateInitialBuilderEditorData(string $builderName, array $editorData): array
     {
+        // When the template is locked, the "content" field is not dehydrated, so it's
+        // missing from the editor data. Fall back to the raw form data in that case.
+        $content = $editorData['content'] ?? $this->data['content'] ?? '';
+
         return [
             '_internalId' => $internalId = $this->getPreviewInternalId(),
+            '_isLocked' => (bool) $this->getRecord()->is_locked,
             'variables' => Arr::mapWithKeys(
-                // @phpstan-ignore-next-line
-                TemplateManager::makeFromId($internalId, $editorData['content'])->extractVariableNames(),
+                TemplateManager::makeFromId($internalId, $content)->extractVariableNames(),
                 fn (string $value) => [$value => null]
             ),
             ...$editorData,
+            'content' => $content,
         ];
     }
 
@@ -112,7 +120,7 @@ class EditTemplate extends EditRecord
             'token' => Preview::cacheChanges(
                 $this->getPreviewInternalId(),
                 Auth::user()->id,
-                $this->data['content']
+                $this->data['content'] ?? ''
             ),
         ]);
     }
