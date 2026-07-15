@@ -35,7 +35,7 @@ class Render extends Action
         ]);
 
         $twig = new \Twig\Environment($loader);
-        $twig->addExtension(new \Twig\Extra\Intl\IntlExtension());
+        $twig->addExtension(new \Twig\Extra\Intl\IntlExtension);
 
         if ($this->strictVariables) {
             $twig->enableStrictVariables();
